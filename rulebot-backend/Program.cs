@@ -14,13 +14,16 @@ builder.Logging.AddConsole();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLocalhost4200",
+    options.AddPolicy("AllowFrontendOrigins",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                .AllowCredentials();
+            policy.WithOrigins(
+                "http://localhost:4200",          
+                "https://www.rulebot-app.optrpa.com" 
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
         });
 });
 
@@ -79,7 +82,7 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-app.UseCors("AllowLocalhost4200");
+app.UseCors("AllowFrontendOrigins");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
