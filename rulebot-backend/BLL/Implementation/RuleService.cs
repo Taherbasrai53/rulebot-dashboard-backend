@@ -21,20 +21,37 @@ namespace rulebot_backend.BLL.Implementation
             _userRepo = userRepo;
         }
 
-        public List<RuleDefinition> GetRuleDefinitions(int userId, int ruleType)
+        public List<RuleDefinition> GetRuleDefinitions(string database, int ruleType, string connectionString)
         {
-            return _ruleRepo.GetRuleDefinitions(userId, ruleType);
+            return _ruleRepo.GetRuleDefinitions(database, ruleType, connectionString);
         }
 
-        public bool SaveEditRule(RuleDefinition ruleDefinition, int userId)
+        public bool SaveEditRule(RuleDefinition ruleDefinition, int userId, string connectionString)
         {
+            
             ruleDefinition.UserId = userId;
-            return _ruleRepo.AddEditRuleDefinition(ruleDefinition);
+            if(ValidatePages(ruleDefinition, connectionString))
+            {
+                return false;
+            }
+
+            return _ruleRepo.AddEditRuleDefinition(ruleDefinition, connectionString);
         }
 
-        public bool ExecuteRule(List<RuleDefinition> ruleDefinitions, int userId)
+        private bool ValidatePages(RuleDefinition ruleDefinition, string connectionString)
         {
-            var connectionString= _userRepo.getClientConnectionString(userId);
+            var pages = _ruleRepo.getRulePages(ruleDefinition.ProcessId, ruleDefinition.RuleType, ruleDefinition.Id, connectionString);
+            var intersect= ruleDefinition.Pages.Split(',').Intersect(pages);
+
+            return intersect.Any();
+        }
+        public bool DeleteRule(int id, string connectionString)
+        {            
+            return _ruleRepo.DeleteRuleDefinition(id, connectionString);
+        }
+
+        public bool ExecuteRule(List<RuleDefinition> ruleDefinitions, int userId, string connectionString)
+        {
             Dictionary<string, string> xmlPaths= new Dictionary<string, string>();
             foreach( var def in ruleDefinitions)
             {
@@ -47,12 +64,26 @@ namespace rulebot_backend.BLL.Implementation
                 ProcessStartInfo psi= new ProcessStartInfo();
                 if (def.RuleType == 1)
                 {
-                    
+                    var stages= def.Stage.Split(',');
+                    var pages= def.Pages.Split(',');
                     var props = def.Parameters.Split(",");
+                    var variables = string.IsNullOrWhiteSpace(def.Variables)
+                            ? new[] { "Data", "Collection" }
+                            : def.Variables.Split(",");
+
+                    var stageProps = stages
+                            .Select(stage => $"('{stage}', {props[0]}, {props[1]})");
+
+                    var variableProps = variables
+                        .Select(variable => $"('{variable}', {(props.Length > 2 ? int.Parse(props[2]) : 2)}, {(props.Length > 3 ? int.Parse(props[3]) : 4)})");
+
+                    var allTuples = string.Join(", ", stageProps.Concat(variableProps));
+                    var formattedArgs = $"\"{xmlPaths[def.ProcessId]}\" \"{def.Pages}\" \"[{allTuples}]\"";
+
                     psi = new ProcessStartInfo
                     {
                         FileName = "python",
-                        Arguments = $"Rule1Exec.py \"{xmlPaths[def.ProcessId]}\" {int.Parse(props[0])} {int.Parse(props[1])}",
+                        Arguments = $"Rule1Exec.py {formattedArgs}",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -61,11 +92,15 @@ namespace rulebot_backend.BLL.Implementation
                 }
                 else if (def.RuleType == 2)
                 {
+                   
                     var props = def.Parameters.Split(",");
+                    
+                    var formattedArgs = $"\"{xmlPaths[def.ProcessId]}\" \"{def.Pages}\" \"[({props[0]}, {props[1]})]\"";
+
                     psi = new ProcessStartInfo
                     {
                         FileName = "python",
-                        Arguments = $"Rule2Exec.py \"{xmlPaths[def.ProcessId]}\" {int.Parse(props[0])} {int.Parse(props[1])}",
+                        Arguments = $"Rule2Exec.py {formattedArgs}",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -74,11 +109,22 @@ namespace rulebot_backend.BLL.Implementation
                 }
                 else if (def.RuleType == 3)
                 {
-                    var props = def.Parameters.Split(",");
+                    var rule3Params = JsonSerializer.Deserialize<List<Rule3Parameter>>(def.Parameters);
+
+                    var propsFormatted = rule3Params
+    .Select(p =>
+        $"('{p.blockNamePrefix}', '{p.dataItemPrefix}', '{p.colorGradient}')")
+    .ToList();
+
+                    var propsArgument = $"[{string.Join(", ", propsFormatted)}]";
+
+                    var formattedArgs = $"\"{xmlPaths[def.ProcessId]}\" \"{def.Pages}\" \"{propsArgument}\"";
+
+
                     psi = new ProcessStartInfo
                     {
                         FileName = "python",
-                        Arguments = $"Rule3Exec.py \"{xmlPaths[def.ProcessId]}\" \"{props[0]}\" \"{props[1]}\" \"{props[2]}\"",
+                        Arguments = $"Rule3Exec.py {formattedArgs}",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -113,12 +159,11 @@ namespace rulebot_backend.BLL.Implementation
             return true;
         }
 
-        public List<DashboardData> GetDashBoardParams(string processId, string pages, int userId)
+        public List<DashboardData> GetDashBoardParams(string processId, string pages, int userId, string client_db, string tenant_db)
         {
-            var connectionString = _userRepo.getClientConnectionString(userId);           
-            var path = _procRepo.getProcessXML(connectionString, processId);
+            var path = _procRepo.getProcessXML(client_db, processId);
 
-            var props = _ruleRepo.getPageProps(processId, pages);
+            var props = _ruleRepo.getPageProps(processId, pages, tenant_db);
 
             List<DashboardData> res= new List<DashboardData>();
             //write execution logic here
@@ -127,7 +172,7 @@ namespace rulebot_backend.BLL.Implementation
                 var psi = new ProcessStartInfo
                 {
                     FileName = "python", 
-                    Arguments = $"DashboardDataScript.py \"{path}\" \"{prop.Page}\" {prop.Height} {prop.Width}",
+                    Arguments = $"DashboardDataScript.py \"{path}\" \"{prop.Page}\" {prop.Height} {prop.Width} {prop.VarHeight} {prop.VarWidth}",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -152,9 +197,9 @@ namespace rulebot_backend.BLL.Implementation
                 var dashboardData= new DashboardData();
                 dashboardData.Page = prop.Page;
                 dashboardData.StageCompliantNum=result[0];
-                dashboardData.StageUnCompliantNum=result[1];
+                dashboardData.StageUnCompliantNum = result[1];
                 dashboardData.DataItemCompliantNum=result[2];
-                dashboardData.DataItemUnCompliantNum=result[3];
+                dashboardData.DataItemUnCompliantNum = result[3];
 
                 res.Add(dashboardData);
             }            

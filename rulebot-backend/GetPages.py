@@ -9,7 +9,7 @@ def main():
     input_str = sys.argv[1]
     
     # Example: Split by comma, trim spaces
-    result = ["Start Page", "Mid Page", "Show Page", "End Page"]
+    result = ["Start Page", "Calculate Square", "Show Page", "End Page"]
 
     # You can choose to return a tuple instead:
     # result = tuple(result)

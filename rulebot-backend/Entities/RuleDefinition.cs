@@ -9,5 +9,7 @@
         public string Stage { get; set; }
         public string Parameters { get; set; }
         public int RuleType { get; set; }
+        public string? Variables { get; set; }
+        public string? database { get; set; }
     }
 }

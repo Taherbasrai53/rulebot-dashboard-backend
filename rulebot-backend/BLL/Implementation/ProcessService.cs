@@ -17,15 +17,39 @@ namespace rulebot_backend.BLL.Implementation
             _procRepo = procRepo;
         }
 
-        public List<ProcessItem> getProcessNames(int userId)
+        //public List<ProcessItem> getProcessNames(int userId, string connectionString)
+        //{
+        //    return _procRepo.getProcessNames(connectionString);
+        //} 
+        
+        public LokScreenData getSelectedProcesses(int userId, string tenant_db, string client_db)
         {
-            var connectionString = _userRepo.getClientConnectionString(userId);
-            return _procRepo.getProcessNames(connectionString);
+            var locked= _procRepo.getSelectedProcesses(tenant_db);
+            var all = _procRepo.getProcessNames(client_db);
+
+            var filteredAll = all
+                .Where(proc => !locked.Any(s => s.ProcessId.ToLower() == proc.ProcessId.ToLower()))
+                .ToList();
+
+            return new LokScreenData
+            {
+                locked= locked,
+                available= filteredAll
+            };
         }
 
-        public List<String> getProcessDetails(string processId, int userId)
+        public List<ProcessItem> getSelectedProcessDb(string database, string tenant_db)
         {
-            var connectionString = _userRepo.getClientConnectionString(userId);
+            return _procRepo.getSelectedProcessesByDb(tenant_db, database);
+        }
+
+        public void addSelectedProcesses(string tenant_db, List<LockedProcess> selectedProcesses, string database)
+        {
+            _procRepo.addSelectedProcesses(tenant_db, selectedProcesses, database);
+        }
+
+        public List<String> getProcessDetails(string processId, int userId, string connectionString)
+        {
             var xmlPath = _procRepo.getProcessXML(connectionString, processId);
 
             //get pages from xml logic here
@@ -60,5 +84,6 @@ namespace rulebot_backend.BLL.Implementation
 
             return result;
         }
+
     }
 }
