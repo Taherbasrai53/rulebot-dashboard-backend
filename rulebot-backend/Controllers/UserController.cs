@@ -24,6 +24,9 @@ namespace rulebot_backend.Controllers
             try
             {
                 var res = _userService.login(req);
+                HttpContext.Session.SetString("Init", "true");
+                Console.WriteLine($"[Login] New Session Created: {HttpContext.Session.Id}");
+
                 _connectionService.StoreConnectionString(HttpContext ,res.connectionString, "tenant_db");
                 res.connectionString = "";
                 return Ok(res);

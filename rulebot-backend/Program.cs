@@ -18,8 +18,9 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(
-                "http://localhost:4200",          
-                "https://www.rulebot-app.optrpa.com" 
+                "http://localhost:4200",
+                "https://www.rulebot-app.optrpa.com",
+                "http://49.43.224.201"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -71,7 +72,7 @@ builder.Services.AddSession(options =>
     options.Cookie.Name = ".AspNetCore.Session";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // ensure compatibility with HTTPS
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // ensure compatibility with HTTPS
     options.Cookie.SameSite = SameSiteMode.None; // allow cross-origin
     options.IdleTimeout = TimeSpan.FromMinutes(30);
 });
@@ -83,14 +84,31 @@ builder.Services.AddHttpContextAccessor();
 var app = builder.Build();
 
 app.UseCors("AllowFrontendOrigins");
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Log cookies BEFORE session is processed
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"[Before Session Middleware] Path: {context.Request.Path}");
+    Console.WriteLine($"Incoming Cookies: {string.Join(", ", context.Request.Cookies.Select(c => $"{c.Key}={c.Value}"))}");
+    await next.Invoke();
+});
+
+// Session middleware must be here
 app.UseSession();
-app.UseHttpsRedirection();
+
+// Log session AFTER middleware has run
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"[After Session Middleware] Session ID: {context.Session.Id}");
+    await next.Invoke();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
