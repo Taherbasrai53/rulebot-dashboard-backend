@@ -55,8 +55,8 @@ namespace rulebot_backend.BLL.Implementation
             //get pages from xml logic here
             var psi = new ProcessStartInfo
             {
-                FileName = "python",
-                Arguments = $"GetPages.py \"{xmlPath}\"",
+                FileName = "python3",
+                Arguments = $"/opt/rulebot-backend/rulebot-dashboard-backend/rulebot-backend/GetPages.py \"{xmlPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,

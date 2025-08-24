@@ -84,8 +84,8 @@ namespace rulebot_backend.BLL.Implementation
 
                     psi = new ProcessStartInfo
                     {
-                        FileName = "python",
-                        Arguments = $"Rule1Exec.py {formattedArgs}",
+                        FileName = "python3",
+                        Arguments = $"/opt/rulebot-backend/rulebot-dashboard-backend/rulebot-backend/Rule1Exec.py {formattedArgs}",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -101,8 +101,8 @@ namespace rulebot_backend.BLL.Implementation
 
                     psi = new ProcessStartInfo
                     {
-                        FileName = "python",
-                        Arguments = $"Rule2Exec.py {formattedArgs}",
+                        FileName = "python3",
+                        Arguments = $"/opt/rulebot-backend/rulebot-dashboard-backend/rulebot-backend/Rule2Exec.py {formattedArgs}",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -125,8 +125,8 @@ namespace rulebot_backend.BLL.Implementation
 
                     psi = new ProcessStartInfo
                     {
-                        FileName = "python",
-                        Arguments = $"Rule3Exec.py {formattedArgs}",
+                        FileName = "python3",
+                        Arguments = $"/opt/rulebot-backend/rulebot-dashboard-backend/rulebot-backend/Rule3Exec.py {formattedArgs}",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -181,8 +181,8 @@ namespace rulebot_backend.BLL.Implementation
             {
                 var psi = new ProcessStartInfo
                 {
-                    FileName = "python", 
-                    Arguments = $"DashboardDataScript.py \"{path}\" \"{prop.Page}\" {prop.Height} {prop.Width} {prop.VarHeight} {prop.VarWidth}",
+                    FileName = "python3", 
+                    Arguments = $"/opt/rulebot-backend/rulebot-dashboard-backend/rulebot-backend/DashboardDataScript.py \"{path}\" \"{prop.Page}\" {prop.Height} {prop.Width} {prop.VarHeight} {prop.VarWidth}",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
