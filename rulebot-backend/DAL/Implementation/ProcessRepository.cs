@@ -38,6 +38,7 @@ namespace rulebot_backend.Business.Implementation
                         item.ProcessName = reader.IsDBNull(reader.GetOrdinal("Name")) ? "" : reader.GetString(reader.GetOrdinal("Name"));
                         item.Database = databaseName;
                         item.Rules = 0;
+                        item.IsLocked = false;
                         processItems.Add(item);
                     }
                 }
@@ -76,6 +77,7 @@ namespace rulebot_backend.Business.Implementation
   LP.Name,
   LP.ProcessType,
   LP.DatabaseName,
+LP.IsLocked,
   COUNT(R.ProcessId) AS RuleCount
 FROM LockedProcesses LP
 LEFT JOIN Rules R ON LP.ProcessId = R.ProcessId
@@ -84,7 +86,8 @@ GROUP BY
   LP.ProcessType,
   LP.Name,
   LP.ProcessType,
-  LP.DatabaseName
+  LP.DatabaseName,
+  LP.IsLocked
 ";
                 sqlComm.CommandType = System.Data.CommandType.Text;
                 
@@ -102,6 +105,7 @@ GROUP BY
                         item.ProcessName = reader.IsDBNull(reader.GetOrdinal("Name")) ? "" : reader.GetString(reader.GetOrdinal("Name"));
                         item.Database = reader.IsDBNull(reader.GetOrdinal("DatabaseName")) ? "" : reader.GetString(reader.GetOrdinal("DatabaseName"));
                         item.Rules = reader.IsDBNull(reader.GetOrdinal("RuleCount")) ? 0 : reader.GetInt32(reader.GetOrdinal("RuleCount"));
+                        item.IsLocked = reader.IsDBNull(reader.GetOrdinal("IsLocked")) ? false : reader.GetBoolean(reader.GetOrdinal("IsLocked"));
                         processes.Add(item);
                     }
                 }
@@ -187,7 +191,7 @@ GROUP BY
  BEGIN TRY
     BEGIN TRANSACTION;
 
-    DELETE FROM LockedProcesses;
+    --DELETE FROM LockedProcesses;
 
     WITH ParsedProcesses AS (
         SELECT *
@@ -200,7 +204,10 @@ GROUP BY
     )
     INSERT INTO LockedProcesses (ProcessId, ProcessType, Name, DatabaseName)
     SELECT p.ProcessId, p.ProcessType, p.ProcessName, @DatabaseName
-    FROM ParsedProcesses p;
+    FROM ParsedProcesses p
+    left join LockedProcesses l 
+    on p.ProcessId=l.ProcessId
+    where l.ProcessId is null;
 
     COMMIT TRANSACTION;
 END TRY

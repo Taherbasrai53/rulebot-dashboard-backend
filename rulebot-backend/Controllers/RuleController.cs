@@ -149,8 +149,31 @@ namespace rulebot_backend.Controllers
                 {
                     return Unauthorized(new { message = "Session expired" });
                 }
-                //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                return Ok(_ruleService.ExecuteRule(def, 1, client_db));
+
+                var results= _ruleService.ExecuteRule(def, 1, client_db);
+                if (results.Count > 1)
+                {
+                    using var ms = new MemoryStream();
+                    using (var archive = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, true))
+                    {
+                        foreach(var item in def)
+                        {
+                            var extension = item.ProcessType == "P" ? "bpprocess" : "bpobjects";
+                            var entry = archive.CreateEntry($"{item.RuleName}.{extension}");
+                            using var entryStream = entry.Open();
+                            using var writer = new StreamWriter(entryStream);
+                            writer.Write(results[item.ProcessId]);
+                        }
+                    }
+                    return File(ms.ToArray(), "application/zip", "processes.zip");
+                }
+                else
+                {
+                    var extension = def.FirstOrDefault().ProcessType == "P" ? "bpprocess" : "bpobject";
+                    var single = results.FirstOrDefault();
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(single.Value);
+                    return File(bytes, "application/xml", $"RuleRes.{extension}");
+                }
             }
             catch { return Problem(); }
         }

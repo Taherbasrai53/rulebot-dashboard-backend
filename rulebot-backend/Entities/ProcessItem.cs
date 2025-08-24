@@ -14,6 +14,7 @@
         public string ProcessName { get; set; }
         public string Database { get; set; }
         public int Rules { get; set; }
+        public Boolean IsLocked { get; set; }
     }
 
     public class LokScreenData

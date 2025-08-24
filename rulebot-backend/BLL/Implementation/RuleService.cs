@@ -50,10 +50,12 @@ namespace rulebot_backend.BLL.Implementation
             return _ruleRepo.DeleteRuleDefinition(id, connectionString);
         }
 
-        public bool ExecuteRule(List<RuleDefinition> ruleDefinitions, int userId, string connectionString)
+        public Dictionary<string, string> ExecuteRule(List<RuleDefinition> ruleDefinitions, int userId, string connectionString)
         {
             Dictionary<string, string> xmlPaths= new Dictionary<string, string>();
-            foreach( var def in ruleDefinitions)
+            Dictionary<string, string> results = new();
+
+            foreach ( var def in ruleDefinitions)
             {
                 var xmlPath = _procRepo.getProcessXML(connectionString, def.ProcessId);
                 xmlPaths[def.ProcessId]= xmlPath;                
@@ -143,10 +145,18 @@ namespace rulebot_backend.BLL.Implementation
                     throw new Exception($"Python error: {error}");
 
                 var result = JsonSerializer.Deserialize<List<string>>(output);
-                _procRepo.UpdateProcessXml(connectionString, def.ProcessId, result[0]);
-            }
-            //write execution logic here
+                if (!File.Exists(result[0]))
+                {
+                    throw new FileNotFoundException("XML file not found", result[0]);
+                }
 
+                string xmlContent = File.ReadAllText(result[0]);
+                results[def.ProcessId] = xmlContent;
+                if (File.Exists(result[0]))
+                {
+                    File.Delete(result[0]);
+                }
+            }
 
             foreach (var path in xmlPaths.Values)
             {
@@ -156,7 +166,7 @@ namespace rulebot_backend.BLL.Implementation
                 }
             }
 
-            return true;
+            return results;
         }
 
         public List<DashboardData> GetDashBoardParams(string processId, string pages, int userId, string client_db, string tenant_db)

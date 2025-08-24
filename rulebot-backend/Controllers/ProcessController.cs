@@ -73,18 +73,10 @@ namespace rulebot_backend.Controllers
         {
             try
             {
-                //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                Console.WriteLine("Inside Get Selected Process");
-                var sessionId = HttpContext.Session.Id;
-                var initValue = HttpContext.Session.GetString("Init");
-                Console.WriteLine($"[Controller] Session ID: {sessionId}, Init Value: {initValue ?? "null"}");
-
                 var tenant_db = _connectionService.GetDecryptedConnectionString(HttpContext, "tenant_db");
                 var client_db = _connectionService.GetDecryptedConnectionString(HttpContext, "client_db");
-                Console.WriteLine($"tenant db : {tenant_db} client db : {client_db}");
                 if (string.IsNullOrEmpty(tenant_db))
                 {
-                    Console.WriteLine("tenat_db is null");
                     return Unauthorized(new { message = "Session expired" });
                 }
                 var builder = new SqlConnectionStringBuilder(client_db);

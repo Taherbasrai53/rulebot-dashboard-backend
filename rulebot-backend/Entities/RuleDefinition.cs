@@ -11,5 +11,7 @@
         public int RuleType { get; set; }
         public string? Variables { get; set; }
         public string? database { get; set; }
+        public string? ProcessType { get; set; }
+        public string RuleName { get; set; } = "";
     }
 }

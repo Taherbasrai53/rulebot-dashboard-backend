@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using rulebot_backend.DAL.Definition;
 using rulebot_backend.Entities;
@@ -79,6 +80,8 @@ namespace rulebot_backend.DAL.Implementation
 BEGIN
     INSERT INTO Rules (ProcessId, Pages, Stage, Parameters, RuleType, Variables, DatabaseName)
     VALUES (@ProcessId, @Pages, @Stage, @Parameters, @RuleType, @Variables, @database);
+
+    Update LockedProcesses set IsLocked=1 where ProcessId=@ProcessId;
 END
 ELSE
 BEGIN
@@ -91,6 +94,14 @@ BEGIN
     WHERE Id = @Id;
 END
 ";
+                if (def.RuleType== 1 && (def.Variables==null || def.Variables=="" ))
+                {
+                    def.Variables = "Data,Collection";
+                    var paras= def.Parameters.Split(',');
+                    paras[2] = "2";
+                    paras[3] = "4";
+                    def.Parameters = string.Join(",", paras);
+                }
                 sqlComm.CommandType = System.Data.CommandType.Text;
                 sqlComm.Parameters.AddWithValue("@Id", def.Id);
                 sqlComm.Parameters.AddWithValue("@ProcessId", def.ProcessId);
